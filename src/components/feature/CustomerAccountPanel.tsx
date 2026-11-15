@@ -211,29 +211,32 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
               {bookings.map((booking) => {
                 const upcoming = new Date(booking.startTime).getTime() > Date.now();
                 return (
-                  <li key={booking.id} className="flex flex-wrap items-center justify-between gap-3 border-2 border-foreground-950 p-3">
-                    <div className="text-sm">
-                      <p className="font-bold">
-  {new Date(booking.startTime).toLocaleString('en-IN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Kolkata',
-  })}
-</p>
-                      <p>{booking.partySize} guests · {booking.location || 'Patty Shack'}</p>
-                      {booking.notes && <p className="mt-1 text-foreground-700">{booking.notes}</p>}
+                  <li key={booking.id} className="poster-card flex flex-wrap items-center justify-between gap-4 p-4">
+                    <div>
+                      <span className="sticker bg-primary-500 text-foreground-950">
+                        {new Date(booking.startTime).toLocaleString('en-IN', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true,
+                          timeZone: 'Asia/Kolkata',
+                        })}
+                      </span>
+                      <p className="mt-3 text-lg uppercase" style={{ fontFamily: 'var(--font-heading)' }}>
+                        {booking.partySize} guests · {booking.location || 'Patty Shack'}
+                      </p>
+                      {booking.notes && (
+                        <p className="hand mt-2 text-xl text-accent-500">{booking.notes}</p>
+                      )}
                     </div>
                     {upcoming && booking.status === 'confirmed' && (
                       <button
                         type="button"
                         onClick={() => void cancelBooking(booking)}
                         disabled={busyBookingId === booking.id}
-                        className="font-bold text-red-700 underline underline-offset-4 disabled:opacity-50"
+                        className="btn-poster btn-berry btn-sm disabled:opacity-60"
                       >
                         {busyBookingId === booking.id ? 'Cancelling…' : 'Cancel booking'}
                       </button>
