@@ -26,7 +26,7 @@ export const locations: LocationItem[] = [
     email: 'patty.shack@gmail.com',
     mapUrl: 'https://www.google.com/maps/search/?api=1&query=Infinity+Benchmark%2C+Sector+V%2C+Kolkata',
     hours: [
-      { day: 'Every day', time: '11:00 am – 10:00 pm' },
+      { day: 'Every day', time: '10:00 am – 9:00 pm' },
       { day: 'Grill orders', time: 'Until 21:45' },
     ],
     image: pattyShackImg || '/images/patty_shack.jpg',

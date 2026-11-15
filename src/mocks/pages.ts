@@ -99,6 +99,6 @@ export const contactInfo = [
   { icon: 'ri-phone-line', label: 'Phone', value: '+91 98746 81046' },
   { icon: 'ri-mail-line', label: 'Email', value: 'patty.shack@gmail.com' },
   { icon: 'ri-map-pin-line', label: 'Counter Location', value: 'Ground Floor, Infinity Benchmark, near RDB Cinema, Sector V, Salt Lake, Kolkata 700091' },
-  { icon: 'ri-time-line', label: 'Opening Hours', value: 'Open Every Day · 11:00 am  – 10:00 pm' },
+  { icon: 'ri-time-line', label: 'Opening Hours', value: 'Open Every Day · 10:00 am  – 9:00 pm' },
   { icon: 'ri-group-line', label: 'Parties & Catering', value: 'Large team orders & events welcome' },
 ];
