@@ -61,7 +61,7 @@ function withCors(request: Request, response: Response): Response {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', origin);
   headers.set('Access-Control-Allow-Headers', 'authorization, content-type');
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, headers });
 }
@@ -243,6 +243,7 @@ async function handleCustomerBookings(request: Request, url: URL): Promise<Respo
       id: bookings.id,
       customerName: bookings.customerName,
       customerPhone: bookings.customerPhone,
+      customerEmail: bookings.customerEmail,
       startTime: bookings.startTime,
       endTime: bookings.endTime,
       partySize: bookings.partySize,
@@ -258,6 +259,58 @@ async function handleCustomerBookings(request: Request, url: URL): Promise<Respo
 
   const match = url.pathname.match(/^\/account\/bookings\/([0-9a-f-]{36})$/i);
   if (!match) return jsonResponse({ error: 'Not found.' }, 404);
+    if (request.method === 'PATCH') {
+    const input = await readJson(request);
+    if (!input) return jsonResponse({ error: 'Invalid request.' }, 400);
+
+    const customerName = typeof input.customer_name === 'string' ? input.customer_name.trim() : '';
+    const customerPhone = typeof input.customer_phone === 'string' ? input.customer_phone.trim() : '';
+    const customerEmail = typeof input.customer_email === 'string' ? input.customer_email.trim() : '';
+    const notes = typeof input.notes === 'string' ? input.notes.trim() : '';
+    const partySize = Number(input.party_size);
+
+    if (!customerName || customerName.length > 80) {
+      return jsonResponse({ error: 'Please enter a name (up to 80 characters).' }, 400);
+    }
+    if (!customerPhone || customerPhone.length > 40) {
+      return jsonResponse({ error: 'Please enter a phone number.' }, 400);
+    }
+    if (customerEmail && (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail) || customerEmail.length > 254)) {
+      return jsonResponse({ error: 'Please enter a valid email address.' }, 400);
+    }
+    if (!Number.isInteger(partySize) || partySize < 1 || partySize > 8) {
+      return jsonResponse({ error: 'Party size must be between 1 and 8.' }, 400);
+    }
+    if (notes.length > 500) {
+      return jsonResponse({ error: 'Notes can be up to 500 characters.' }, 400);
+    }
+
+    const [updated] = await db.update(bookings).set({
+      customerName,
+      customerPhone,
+      customerEmail: customerEmail || null,
+      partySize,
+      notes,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(bookings.id, match[1]),
+      eq(bookings.customerUserId, userId),
+      eq(bookings.status, 'confirmed'),
+      gt(bookings.startTime, new Date()),
+    )).returning({
+      id: bookings.id,
+      customerName: bookings.customerName,
+      customerPhone: bookings.customerPhone,
+      customerEmail: bookings.customerEmail,
+      startTime: bookings.startTime,
+      endTime: bookings.endTime,
+      partySize: bookings.partySize,
+      location: bookings.location,
+      notes: bookings.notes,
+      status: bookings.status,
+    });
+    return updated ? jsonResponse(updated) : jsonResponse({ error: 'Booking not found or already past.' }, 404);
+  }
   if (request.method !== 'DELETE') return jsonResponse({ error: 'Method not allowed.' }, 405);
 
   const [deleted] = await db.delete(bookings).where(and(

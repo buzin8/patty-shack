@@ -11,6 +11,7 @@ export const bookings = pgTable('bookings', {
   customerUserId: uuid('customer_user_id').references(() => authUser.id, { onDelete: 'set null' }),
   customerName: varchar('customer_name', { length: 80 }).notNull(),
   customerPhone: varchar('customer_phone', { length: 40 }).notNull(),
+  customerEmail: varchar('customer_email', { length: 254 }),
   startTime: timestamp('start_time', { withTimezone: true, mode: 'date' }).notNull(),
   endTime: timestamp('end_time', { withTimezone: true, mode: 'date' }).notNull(),
   partySize: smallint('party_size').notNull(),
