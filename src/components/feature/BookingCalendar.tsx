@@ -101,6 +101,7 @@ export function BookingCalendar({
       if (!m.has(d)) m.set(d, []);
       m.get(d)!.push(s);
     });
+    m.forEach((list) => list.sort((a, b) => a.start_time.localeCompare(b.start_time)));
     return m;
   }, [slots]);
   const dates = useMemo(() => Array.from(byDate.keys()).sort(), [byDate]);

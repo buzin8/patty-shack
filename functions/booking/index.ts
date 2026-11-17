@@ -156,28 +156,13 @@ async function getProviderTimeslots(): Promise<ProviderTimeslot[]> {
 
 async function getAvailableTimeslots(): Promise<ProviderTimeslot[]> {
   const providerSlots = await getProviderTimeslots();
-  const validSlots = providerSlots.flatMap((slot) => {
-    const start = parseLocalTimestamp(slot.start_time);
-    const end = parseLocalTimestamp(slot.end_time);
-    return start && end && end > start ? [{ slot, start, end }] : [];
-  });
-  if (!validSlots.length) return [];
-
-  const earliest = new Date(Math.min(...validSlots.map(({ start }) => start.getTime())));
-  const latest = new Date(Math.max(...validSlots.map(({ end }) => end.getTime())));
-  const existing = await db.select({
-    startTime: bookings.startTime,
-    endTime: bookings.endTime,
-  }).from(bookings).where(and(
-    eq(bookings.status, 'confirmed'),
-    lt(bookings.startTime, latest),
-    gt(bookings.endTime, earliest),
-  ));
-
-  return validSlots
-    .filter(({ start, end }) => !existing.some(
-      (booking) => booking.startTime < end && booking.endTime > start,
-    ))
+  return providerSlots
+    .flatMap((slot) => {
+      const start = parseLocalTimestamp(slot.start_time);
+      const end = parseLocalTimestamp(slot.end_time);
+      return start && end && end > start ? [{ slot, start }] : [];
+    })
+    .sort((a, b) => a.start.getTime() - b.start.getTime())
     .map(({ slot }) => slot);
 }
 

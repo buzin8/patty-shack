@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { authClient } from '@/auth';
 import { bookingApiBase } from '@/mocks/booking';
+import SlotPicker from '@/components/feature/SlotPicker';
+import type { PickerSlot } from '@/components/feature/SlotPicker';
 
 type CustomerBooking = {
   id: string;
@@ -27,6 +29,7 @@ interface Props {
 }
 
 const authUrl = import.meta.env.VITE_NEON_AUTH_URL || '';
+const TZ = 'Asia/Kolkata';
 
 const inputClass = 'border-2 border-foreground-950 bg-white px-3 py-2 font-normal';
 
@@ -54,7 +57,11 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
   const [editPhone, setEditPhone] = useState('');
   const [editPartySize, setEditPartySize] = useState(2);
   const [editNotes, setEditNotes] = useState('');
+  const [editSlot, setEditSlot] = useState<PickerSlot | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+  const [slots, setSlots] = useState<PickerSlot[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsError, setSlotsError] = useState('');
 
   const refreshAccount = useCallback(async () => {
     setLoading(true);
@@ -136,6 +143,22 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
     }
   }
 
+  async function loadSlots() {
+    setSlotsLoading(true);
+    setSlotsError('');
+    try {
+      const response = await fetch(`${bookingApiBase}/timeslots`);
+      const body: unknown = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(getErrorMessage(body) || 'Could not load open times.');
+      if (!Array.isArray(body)) throw new Error('The open times response was invalid.');
+      setSlots(body as PickerSlot[]);
+    } catch (slotError) {
+      setSlotsError(slotError instanceof Error ? slotError.message : 'Could not load open times.');
+    } finally {
+      setSlotsLoading(false);
+    }
+  }
+
   function startEditing(booking: CustomerBooking) {
     setEditingId(booking.id);
     setEditName(booking.customerName || user?.name || '');
@@ -143,8 +166,10 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
     setEditPhone(booking.customerPhone || '');
     setEditPartySize(booking.partySize);
     setEditNotes(booking.notes || '');
+    setEditSlot(null);
     setError('');
     setNotice('');
+    void loadSlots();
   }
 
   async function saveEdit(event: FormEvent<HTMLFormElement>) {
@@ -159,28 +184,37 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
       const token = sessionResult.data?.session.token;
       if (!token) throw new Error('Your session expired. Sign in again.');
 
+      const payload: Record<string, unknown> = {
+        customer_name: editName.trim(),
+        customer_email: editEmail.trim(),
+        customer_phone: editPhone.trim(),
+        party_size: editPartySize,
+        notes: editNotes.trim(),
+      };
+      if (editSlot) {
+        payload.start_time = editSlot.start_time;
+        payload.end_time = editSlot.end_time;
+      }
+
       const response = await fetch(`${bookingApiBase}/account/bookings/${editingId}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          customer_name: editName.trim(),
-          customer_email: editEmail.trim(),
-          customer_phone: editPhone.trim(),
-          party_size: editPartySize,
-          notes: editNotes.trim(),
-        }),
+        body: JSON.stringify(payload),
       });
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(getErrorMessage(body) || 'Could not update this booking.');
       }
       const updated = body as CustomerBooking;
-      setBookings((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      setBookings((current) => current
+        .map((item) => (item.id === updated.id ? updated : item))
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()));
       setEditingId('');
       setNotice('Booking updated.');
+      if (editSlot) window.dispatchEvent(new Event('patty-booking-cancelled'));
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Could not update this booking.');
     } finally {
@@ -289,7 +323,7 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
                             hour: 'numeric',
                             minute: '2-digit',
                             hour12: true,
-                            timeZone: 'Asia/Kolkata',
+                            timeZone: TZ,
                           })}
                         </span>
                         <p className="mt-3 text-lg uppercase" style={{ fontFamily: 'var(--font-heading)' }}>
@@ -343,6 +377,20 @@ export default function CustomerAccountPanel({ onCustomerNameChange }: Props) {
                           Party size
                           <input required type="number" min={1} max={8} value={editPartySize} onChange={(event) => setEditPartySize(Number(event.target.value))} className={inputClass} />
                         </label>
+                        <div className="sm:col-span-2">
+                          <p className="text-sm font-bold">
+                            Change date and time <span className="font-normal">(optional)</span>
+                          </p>
+                          <div className="mt-2 rounded-lg border-2 border-foreground-950 bg-white p-3">
+                            <SlotPicker
+                              slots={slots}
+                              value={editSlot}
+                              onChange={setEditSlot}
+                              loading={slotsLoading}
+                              error={slotsError}
+                            />
+                          </div>
+                        </div>
                         <label className="grid gap-1 text-sm font-bold sm:col-span-2">
                           Notes
                           <textarea rows={3} maxLength={500} value={editNotes} onChange={(event) => setEditNotes(event.target.value)} className={inputClass} />
