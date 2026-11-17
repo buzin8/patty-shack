@@ -27,7 +27,7 @@ export const locations: LocationItem[] = [
     mapUrl: 'https://www.google.com/maps/search/?api=1&query=Infinity+Benchmark%2C+Sector+V%2C+Kolkata',
     hours: [
       { day: 'Every day', time: '10:00 am – 9:00 pm' },
-      { day: 'Grill orders', time: 'Until 21:45' },
+      { day: 'Grill orders', time: 'Until 8:45 pm' },
     ],
     image: pattyShackImg || '/images/patty_shack.jpg',
   },
